@@ -37,17 +37,22 @@ class Receipt(models.Model):
     products = models.ManyToManyField(Product, through='ReceiptProduct')
 
     def save(self, *args, **kwargs):
-        # Сначала сохраняем чек
+        # Сначала сохраняем чек (чтобы получить ID)
         super().save(*args, **kwargs)
 
-        # Затем пересчитываем сумму, если есть товары
-        if hasattr(self, 'receiptproduct_set'):
-            self.total_amount = sum(
-                item.product.price * item.quantity
-                for item in self.receiptproduct_set.all()
-            )
-            # Сохраняем снова с обновлённой суммой
+        # Если чек уже существует, пересчитываем сумму
+        if self.pk:
+            self._calculate_total()
+            # Сохраняем снова с обновленной суммой
             super().save(*args, **kwargs)
+
+    def _calculate_total(self):
+        """Вычисляет общую сумму на основе связанных товаров"""
+        total = sum(
+            item.product.price * item.quantity
+            for item in self.receiptproduct_set.all()
+        )
+        self.total_amount = total
 
     def __str__(self):
         return f"Чек №{self.number} от {self.date_time}"

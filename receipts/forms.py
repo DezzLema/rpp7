@@ -43,8 +43,16 @@ class ReceiptForm(forms.ModelForm):
         return super().is_valid() and self.product_formset.is_valid()
 
     def save(self, commit=True):
+        # Сначала сохраняем чек
         receipt = super().save(commit=commit)
+
         if commit:
+            # Сохраняем товары
             self.product_formset.instance = receipt
             self.product_formset.save()
+
+            # Принудительно пересчитываем сумму
+            receipt._calculate_total()
+            receipt.save()
+
         return receipt
