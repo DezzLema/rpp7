@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{% if form.instance.pk %}Редактировать чек{% else %}Создать чек{% endif %}</title>
+</head>
+<body>
+    <h1>{% if form.instance.pk %}Редактировать чек{% else %}Создать чек{% endif %}</h1>
+    <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    
+    <h3>Товары в чеке:</h3>
+    {{ form.product_formset.management_form }}
+    {% for product_form in form.product_formset %}
+        <div class="product-form">
+            {{ product_form.as_table }}
+        </div>
+    {% endfor %}
+    
+    <button type="submit">Сохранить</button>
+</form>
+    <a href="{% url 'receipt_list' %}">Отмена</a>
+</body>
+</html>
