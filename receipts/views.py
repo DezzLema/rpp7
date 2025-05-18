@@ -1,9 +1,19 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Receipt
-from .forms import ReceiptForm
-
 from django.views.generic import CreateView, UpdateView
-from .forms import ReceiptForm
+from django.forms import inlineformset_factory
+from .models import Receipt, ReceiptProduct
+from .forms import ReceiptForm, ReceiptProductForm
+from .models import Receipt
+from .forms import ReceiptForm, ReceiptProductFormSet
+from django.urls import reverse_lazy
+
+ReceiptProductFormSet = inlineformset_factory(
+    Receipt,
+    ReceiptProduct,
+    form=ReceiptProductForm,
+    extra=1,
+    can_delete=True
+)
 
 
 def receipt_list(request):
@@ -20,11 +30,15 @@ def receipt_create(request):
     if request.method == 'POST':
         form = ReceiptForm(request.POST)
         if form.is_valid():
-            receipt = form.save()
-            return redirect('receipt_detail', pk=receipt.pk)
+            receipt = form.save()  # Сохраняет и чек, и товары
+            return redirect('receipt_list')
     else:
         form = ReceiptForm()
-    return render(request, 'receipts/receipt_form.html', {'form': form})
+
+    return render(request, 'receipts/receipt_form.html', {
+        'form': form,
+        'formset': form.product_formset
+    })
 
 
 def receipt_update(request, pk):
@@ -32,11 +46,15 @@ def receipt_update(request, pk):
     if request.method == 'POST':
         form = ReceiptForm(request.POST, instance=receipt)
         if form.is_valid():
-            receipt = form.save()
+            form.save()
             return redirect('receipt_detail', pk=receipt.pk)
     else:
         form = ReceiptForm(instance=receipt)
-    return render(request, 'receipts/receipt_form.html', {'form': form})
+
+    return render(request, 'receipts/receipt_form.html', {
+        'form': form,
+        'formset': form.product_formset
+    })
 
 
 def receipt_delete(request, pk):
@@ -58,4 +76,23 @@ class ReceiptUpdateView(UpdateView):
     model = Receipt
     form_class = ReceiptForm
     template_name = 'receipts/receipt_form.html'
-    success_url = '/receipts/'
+    success_url = reverse_lazy('receipt_list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.POST:
+            context['formset'] = ReceiptProductFormSet(self.request.POST, instance=self.object)
+        else:
+            context['formset'] = ReceiptProductFormSet(instance=self.object)
+        return context
+
+    def form_valid(self, form):
+        context = self.get_context_data()
+        formset = context['formset']
+        if formset.is_valid():
+            self.object = form.save()
+            formset.instance = self.object
+            formset.save()
+            return super().form_valid(form)
+        else:
+            return self.render_to_response(self.get_context_data(form=form))

@@ -31,22 +31,23 @@ class Product(models.Model):
 class Receipt(models.Model):
     number = models.CharField(max_length=50)
     date_time = models.DateTimeField()
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # Добавлено default=0
     store = models.ForeignKey(Store, on_delete=models.CASCADE)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
     products = models.ManyToManyField(Product, through='ReceiptProduct')
 
     def save(self, *args, **kwargs):
-        # Если это новый чек (ещё не сохранён в БД)
-        if not self.pk:
-            super().save(*args, **kwargs)  # Сначала сохраняем, чтобы получить id
+        # Сначала сохраняем чек
+        super().save(*args, **kwargs)
 
-        # Пересчитываем сумму на основе товаров
-        self.total_amount = sum(
-            item.product.price * item.quantity
-            for item in self.receiptproduct_set.all()
-        )
-        super().save(*args, **kwargs)  # Сохраняем с новой суммой
+        # Затем пересчитываем сумму, если есть товары
+        if hasattr(self, 'receiptproduct_set'):
+            self.total_amount = sum(
+                item.product.price * item.quantity
+                for item in self.receiptproduct_set.all()
+            )
+            # Сохраняем снова с обновлённой суммой
+            super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Чек №{self.number} от {self.date_time}"

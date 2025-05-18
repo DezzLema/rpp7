@@ -10,13 +10,15 @@
     {% csrf_token %}
     {{ form.as_p }}
     
-    <h3>Товары в чеке:</h3>
-    {{ form.product_formset.management_form }}
-    {% for product_form in form.product_formset %}
-        <div class="product-form">
-            {{ product_form.as_table }}
-        </div>
-    {% endfor %}
+    <h3>Товары:</h3>
+    {{ formset.management_form }}
+    <div id="product-forms">
+        {% for form in formset %}
+            <div class="product-form">
+                {{ form.as_p }}
+            </div>
+        {% endfor %}
+    </div>
     
     <button type="submit">Сохранить</button>
 </form>
