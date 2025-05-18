@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import CreateView, UpdateView
 from django.forms import inlineformset_factory
-from .models import Receipt, ReceiptProduct
+from .models import Receipt, ReceiptProduct, Product
 from .forms import ReceiptForm, ReceiptProductForm
 from .models import Receipt
 from .forms import ReceiptForm, ReceiptProductFormSet
@@ -27,19 +27,21 @@ def receipt_detail(request, pk):
 
 
 def receipt_create(request):
+    products = Product.objects.all()  # Получаем все товары для выпадающего списка
+
     if request.method == 'POST':
         form = ReceiptForm(request.POST)
         if form.is_valid():
-            receipt = form.save()  # Сохраняет и чек, и товары
+            receipt = form.save()
             return redirect('receipt_list')
     else:
         form = ReceiptForm()
 
     return render(request, 'receipts/receipt_form.html', {
         'form': form,
-        'formset': form.product_formset
+        'formset': form.product_formset,
+        'products': products  # Добавляем товары в контекст
     })
-
 
 def receipt_update(request, pk):
     receipt = get_object_or_404(Receipt, pk=pk)
